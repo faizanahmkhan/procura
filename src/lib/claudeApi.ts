@@ -14,7 +14,7 @@ class ClaudeApiError extends Error {
 }
 
 function buildSystemPrompt(): string {
-  return `You are Wembol's AI governance analyst. Your role is to evaluate enterprise AI tool procurement requests and return a structured risk assessment.
+  return `You are Procura's AI governance analyst. Your role is to evaluate enterprise AI tool procurement requests and return a structured risk assessment.
 
 You MUST respond with valid JSON only. No prose, no markdown fences, no explanation outside the JSON object.
 

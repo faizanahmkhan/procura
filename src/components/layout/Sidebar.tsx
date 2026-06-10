@@ -39,9 +39,9 @@ const Sidebar: FC<SidebarProps> = ({ activeView, onNavigate, requests }) => {
       <div className="px-5 py-5 border-b border-[#1a2035]">
         <div className="flex items-center gap-2.5 mb-1">
           <div className="w-7 h-7 rounded-md bg-indigo-500 flex items-center justify-center shrink-0">
-            <span className="text-white text-xs font-bold leading-none">W</span>
+            <span className="text-white text-xs font-bold leading-none">P</span>
           </div>
-          <span className="text-white font-semibold text-[15px] tracking-tight">Wembol</span>
+          <span className="text-white font-semibold text-[15px] tracking-tight">Procura</span>
         </div>
         <p className="text-[#3d5068] text-[11px] leading-4">AI Procurement Intelligence</p>
         <p className="mono text-indigo-400 text-[11px] mt-2 tabular-nums tracking-wide">

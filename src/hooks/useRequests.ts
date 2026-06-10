@@ -2,7 +2,7 @@ import { useReducer, useEffect } from 'react';
 import type { ToolRequest, AIAnalysis, RequestStatus } from '../types';
 import { SEED_REQUESTS } from '../data/seedRequests';
 
-const STORAGE_KEY = 'wembol_v1';
+const STORAGE_KEY = 'procura_v1';
 const LEGACY_STORAGE_KEY = 'govtool_v1';
 
 type Action =
