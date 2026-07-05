@@ -23,6 +23,7 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
   },
   GetCommand: vi.fn((params: unknown) => params),
   PutCommand: vi.fn((params: unknown) => params),
+  ScanCommand: vi.fn((params: unknown) => params),
 }));
 
 vi.mock('@anthropic-ai/sdk', () => ({
@@ -60,11 +61,12 @@ const mockClaudeReport = {
   valueAnalysis: 'Good value at medium cost banding given the compliance posture and low vendor lock-in risk.',
 };
 
-function makeEvent(body: unknown): APIGatewayProxyEventV2 {
+function makeEvent(body: unknown, method = 'POST', path = '/evaluations'): APIGatewayProxyEventV2 {
+  const routeKey = `${method} ${path}`;
   return {
     version: '2.0',
-    routeKey: 'POST /evaluate',
-    rawPath: '/evaluate',
+    routeKey,
+    rawPath: path,
     rawQueryString: '',
     headers: { 'content-type': 'application/json' },
     requestContext: {
@@ -73,19 +75,19 @@ function makeEvent(body: unknown): APIGatewayProxyEventV2 {
       domainName: 'test.execute-api.eu-west-2.amazonaws.com',
       domainPrefix: 'test',
       http: {
-        method: 'POST',
-        path: '/evaluate',
+        method,
+        path,
         protocol: 'HTTP/1.1',
         sourceIp: '127.0.0.1',
         userAgent: 'vitest',
       },
       requestId: 'test-request-id',
-      routeKey: 'POST /evaluate',
+      routeKey,
       stage: '$default',
       time: '01/Jan/2024:00:00:00 +0000',
       timeEpoch: 1704067200000,
     },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
     isBase64Encoded: false,
   } as APIGatewayProxyEventV2;
 }
@@ -235,6 +237,123 @@ describe('handler', () => {
     expect(result).toMatchObject({ statusCode: 200 });
     const body = JSON.parse((result as { body: string }).body) as Record<string, unknown>;
     expect(body.vendorName).toBe('Acme AI Solutions');
+  });
+
+  it('accepts inline vendorDocumentation without touching S3 and prefers the client vendor name', async () => {
+    mocks.ddbSend
+      .mockResolvedValueOnce({ Item: mockProfile })
+      .mockResolvedValueOnce({});
+
+    mocks.anthropicCreate.mockResolvedValue({
+      id: 'msg_inline',
+      type: 'message',
+      role: 'assistant',
+      model: 'claude-sonnet-4-6',
+      content: [{ type: 'text', text: JSON.stringify(mockClaudeReport) }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 200, output_tokens: 300 },
+    });
+
+    const result = await handler(
+      makeEvent({
+        policyProfileId: 'profile-abc',
+        vendorName: 'Client-Supplied Name Ltd',
+        vendorDocumentation: 'We store data in eu-west-2 and hold SOC 2.',
+      }),
+      mockContext,
+      vi.fn(),
+    );
+
+    expect(result).toMatchObject({ statusCode: 200 });
+    expect(mocks.s3Send).not.toHaveBeenCalled();
+
+    const body = JSON.parse((result as { body: string }).body) as Record<string, unknown>;
+    expect(body.vendorName).toBe('Client-Supplied Name Ltd');
+    expect(body.policyChecks).toHaveLength(3);
+  });
+
+  it('returns 400 when neither vendorDocumentation nor s3Key is provided', async () => {
+    const result = await handler(
+      makeEvent({ policyProfileId: 'profile-abc', vendorName: 'Acme' }),
+      mockContext,
+      vi.fn(),
+    );
+    expect(result).toMatchObject({ statusCode: 400 });
+  });
+
+  it('creates a policy profile via POST /profiles', async () => {
+    mocks.ddbSend.mockResolvedValueOnce({});
+
+    const result = await handler(
+      makeEvent(
+        {
+          name: 'Standard procurement policy',
+          dataResidencyRegion: 'uk',
+          requiredCertifications: ['SOC 2', 'ISO 27001'],
+          costBanding: 'medium',
+          vendorLockInTolerance: 'low',
+        },
+        'POST',
+        '/profiles',
+      ),
+      mockContext,
+      vi.fn(),
+    );
+
+    expect(result).toMatchObject({ statusCode: 201 });
+    const body = JSON.parse((result as { body: string }).body) as Record<string, unknown>;
+    expect(typeof body.id).toBe('string');
+    expect(typeof body.createdAt).toBe('string');
+    expect(body.name).toBe('Standard procurement policy');
+
+    expect(mocks.ddbSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        TableName: 'PolicyProfiles',
+        Item: expect.objectContaining({ profileId: body.id, name: 'Standard procurement policy' }),
+      }),
+    );
+  });
+
+  it('rejects an invalid profile with 400', async () => {
+    const result = await handler(
+      makeEvent(
+        {
+          name: 'Bad profile',
+          dataResidencyRegion: 'uk',
+          requiredCertifications: 'not-an-array',
+          costBanding: 'medium',
+          vendorLockInTolerance: 'low',
+        },
+        'POST',
+        '/profiles',
+      ),
+      mockContext,
+      vi.fn(),
+    );
+    expect(result).toMatchObject({ statusCode: 400 });
+    expect(mocks.ddbSend).not.toHaveBeenCalled();
+  });
+
+  it('lists policy profiles via GET /profiles', async () => {
+    mocks.ddbSend.mockResolvedValueOnce({ Items: [mockProfile] });
+
+    const result = await handler(makeEvent(undefined, 'GET', '/profiles'), mockContext, vi.fn());
+
+    expect(result).toMatchObject({ statusCode: 200 });
+    const body = JSON.parse((result as { body: string }).body) as Record<string, unknown>[];
+    expect(body).toHaveLength(1);
+    expect(body[0].id).toBe('profile-abc');
+    expect(body[0]).not.toHaveProperty('profileId');
+  });
+
+  it('answers CORS preflight OPTIONS with 204', async () => {
+    const result = await handler(makeEvent(undefined, 'OPTIONS', '/profiles'), mockContext, vi.fn());
+    expect(result).toMatchObject({ statusCode: 204 });
+  });
+
+  it('returns 404 for unknown routes', async () => {
+    const result = await handler(makeEvent(undefined, 'GET', '/nope'), mockContext, vi.fn());
+    expect(result).toMatchObject({ statusCode: 404 });
   });
 
   it('returns 502 when Claude returns no text block', async () => {

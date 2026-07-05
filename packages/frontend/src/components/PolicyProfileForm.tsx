@@ -1,44 +1,50 @@
-import { useState, type FC, type FormEvent, type ReactNode } from 'react';
-import { createProfile } from '../api';
+import { useState, type FC, type FormEvent } from 'react';
 import type { PolicyProfile } from '@procura/shared';
+import { createProfile } from '../api';
 
-const CERTIFICATIONS = ['ISO 27001', 'SOC 2', 'Cyber Essentials', 'PCI DSS', 'GDPR Compliant'];
-const REGIONS = ['uk', 'eu', 'us', 'global'] as const;
+const REGIONS: { value: string; label: string }[] = [
+  { value: 'uk', label: 'UK' },
+  { value: 'eu', label: 'EU' },
+  { value: 'us', label: 'US' },
+];
+
+const CERTIFICATIONS = ['SOC 2', 'ISO 27001', 'Cyber Essentials'];
+
 const BANDINGS = ['low', 'medium', 'high'] as const;
 
-type Status = 'idle' | 'loading' | 'success' | 'error';
+type Status = 'idle' | 'saving' | 'saved' | 'error';
 
 const PolicyProfileForm: FC = () => {
   const [name, setName] = useState('');
-  const [region, setRegion] = useState<string>('uk');
-  const [certs, setCerts] = useState<string[]>([]);
+  const [region, setRegion] = useState('uk');
+  const [certifications, setCertifications] = useState<string[]>([]);
   const [costBanding, setCostBanding] = useState<PolicyProfile['costBanding']>('medium');
   const [lockInTolerance, setLockInTolerance] =
     useState<PolicyProfile['vendorLockInTolerance']>('medium');
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
-  const [created, setCreated] = useState<PolicyProfile | null>(null);
+  const [saved, setSaved] = useState<PolicyProfile | null>(null);
 
-  function toggleCert(cert: string) {
-    setCerts((prev) =>
+  function toggleCertification(cert: string) {
+    setCertifications((prev) =>
       prev.includes(cert) ? prev.filter((c) => c !== cert) : [...prev, cert],
     );
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setStatus('loading');
+    setStatus('saving');
     setError('');
     try {
       const profile = await createProfile({
         name,
         dataResidencyRegion: region,
-        requiredCertifications: certs,
+        requiredCertifications: certifications,
         costBanding,
         vendorLockInTolerance: lockInTolerance,
       });
-      setCreated(profile);
-      setStatus('success');
+      setSaved(profile);
+      setStatus('saved');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed');
       setStatus('error');
@@ -46,134 +52,116 @@ const PolicyProfileForm: FC = () => {
   }
 
   function reset() {
-    setStatus('idle');
-    setCreated(null);
     setName('');
-    setCerts([]);
+    setRegion('uk');
+    setCertifications([]);
     setCostBanding('medium');
     setLockInTolerance('medium');
-    setRegion('uk');
+    setStatus('idle');
     setError('');
+    setSaved(null);
   }
 
-  if (status === 'success' && created) {
+  if (status === 'saved' && saved) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-lg border border-emerald-700 bg-emerald-950/40 p-4">
-          <p className="text-emerald-400 font-medium">Profile saved</p>
-          <p className="text-slate-400 text-sm mt-1 font-mono">{created.id}</p>
+      <section>
+        <div className="notice notice-success">
+          <p className="notice-title">Profile saved</p>
+          <p className="notice-detail">
+            {saved.name} · <code>{saved.id}</code>
+          </p>
         </div>
-        <button
-          onClick={reset}
-          className="text-sm text-slate-400 underline underline-offset-2"
-        >
-          Create another
+        <button type="button" className="btn-link" onClick={reset}>
+          Create another profile
         </button>
-      </div>
+      </section>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <h1 className="text-xl font-semibold text-white">New Policy Profile</h1>
+    <form className="form" onSubmit={handleSubmit}>
+      <h1>New policy profile</h1>
 
-      <Field label="Organisation name">
+      <div className="field">
+        <label htmlFor="profile-name">Profile name</label>
         <input
+          id="profile-name"
           type="text"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className={inputCls}
-          placeholder="e.g. Ministry of Justice"
+          placeholder="e.g. Standard procurement policy"
         />
-      </Field>
+      </div>
 
-      <Field label="Required data residency region">
+      <div className="field">
+        <label htmlFor="profile-region">Required data residency region</label>
         <select
+          id="profile-region"
           value={region}
           onChange={(e) => setRegion(e.target.value)}
-          className={inputCls}
         >
           {REGIONS.map((r) => (
-            <option key={r} value={r}>
-              {r.toUpperCase()}
+            <option key={r.value} value={r.value}>
+              {r.label}
             </option>
           ))}
         </select>
-      </Field>
+      </div>
 
-      <Field label="Required security certifications">
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          {CERTIFICATIONS.map((cert) => (
-            <label
-              key={cert}
-              className="flex items-center gap-2 text-sm cursor-pointer select-none"
-            >
-              <input
-                type="checkbox"
-                checked={certs.includes(cert)}
-                onChange={() => toggleCert(cert)}
-                className="accent-indigo-500 h-4 w-4"
-              />
-              <span className="text-slate-300">{cert}</span>
-            </label>
-          ))}
-        </div>
-      </Field>
+      <fieldset className="field">
+        <legend>Required security certifications</legend>
+        {CERTIFICATIONS.map((cert) => (
+          <label key={cert} className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={certifications.includes(cert)}
+              onChange={() => toggleCertification(cert)}
+            />
+            {cert}
+          </label>
+        ))}
+      </fieldset>
 
-      <Field label="Cost banding">
+      <div className="field">
+        <label htmlFor="profile-cost">Cost banding</label>
         <select
+          id="profile-cost"
           value={costBanding}
           onChange={(e) => setCostBanding(e.target.value as PolicyProfile['costBanding'])}
-          className={inputCls}
         >
           {BANDINGS.map((b) => (
             <option key={b} value={b}>
-              {capitalise(b)}
+              {b.charAt(0).toUpperCase() + b.slice(1)}
             </option>
           ))}
         </select>
-      </Field>
+      </div>
 
-      <Field label="Vendor lock-in tolerance">
+      <div className="field">
+        <label htmlFor="profile-lockin">Vendor lock-in tolerance</label>
         <select
+          id="profile-lockin"
           value={lockInTolerance}
           onChange={(e) =>
             setLockInTolerance(e.target.value as PolicyProfile['vendorLockInTolerance'])
           }
-          className={inputCls}
         >
           {BANDINGS.map((b) => (
             <option key={b} value={b}>
-              {capitalise(b)}
+              {b.charAt(0).toUpperCase() + b.slice(1)}
             </option>
           ))}
         </select>
-      </Field>
+      </div>
 
-      {status === 'error' && <p className="text-red-400 text-sm">{error}</p>}
+      {status === 'error' && <p className="error-text">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={status === 'loading'}
-        className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded font-medium text-sm transition-colors"
-      >
-        {status === 'loading' ? 'Saving…' : 'Save profile'}
+      <button type="submit" className="btn" disabled={status === 'saving'}>
+        {status === 'saving' ? 'Saving…' : 'Save profile'}
       </button>
     </form>
   );
 };
-
-const inputCls =
-  'w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500';
-
-const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-const Field: FC<{ label: string; children: ReactNode }> = ({ label, children }) => (
-  <div className="space-y-1.5">
-    <label className="block text-sm font-medium text-slate-300">{label}</label>
-    {children}
-  </div>
-);
 
 export default PolicyProfileForm;

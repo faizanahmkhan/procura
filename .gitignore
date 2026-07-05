@@ -20,6 +20,7 @@ dist-ssr/
 
 # AWS
 .aws-sam/
+cdk-outputs.json
 
 # Editor
 .vscode/*

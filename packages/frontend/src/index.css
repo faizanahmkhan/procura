@@ -1,4 +1,22 @@
-@import "tailwindcss";
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --border: #d7dce3;
+  --text: #1a2230;
+  --text-muted: #5c6675;
+  --accent: #2251cc;
+  --accent-hover: #1a41a6;
+  --pass-bg: #e7f5ec;
+  --pass-border: #9dd4b0;
+  --pass-text: #14652f;
+  --fail-bg: #fceceb;
+  --fail-border: #ecaaa5;
+  --fail-text: #96241c;
+  --review-bg: #fdf4e3;
+  --review-border: #ecd096;
+  --review-text: #7a5410;
+  --error: #b3261e;
+}
 
 * {
   box-sizing: border-box;
@@ -6,21 +24,296 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
-  background-color: #0c0e14;
-  color: #e2e8f0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
 }
 
-#root {
-  min-height: 100vh;
+code {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.85em;
+  color: var(--text-muted);
 }
 
-.mono {
-  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+h1 {
+  font-size: 1.35rem;
+  margin: 0 0 0.5rem;
 }
 
-select option {
-  background-color: #0d1018;
-  color: #c8d8e8;
+h2 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 1.75rem 0 0.6rem;
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.nav-tab {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.nav-tab:hover {
+  color: var(--text);
+}
+
+.nav-tab-active {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.app-main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* ── Forms ─────────────────────────────────────────────────────────────── */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.field label,
+.field legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0;
+}
+
+input[type='text'],
+select,
+textarea {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  width: 100%;
+}
+
+textarea {
+  resize: vertical;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.15rem 0;
+}
+
+.checkbox-label input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.btn {
+  align-self: flex-start;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1.25rem;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-link {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 1rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ── Notices & status text ─────────────────────────────────────────────── */
+
+.notice {
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.notice-success {
+  background: var(--pass-bg);
+  border-color: var(--pass-border);
+}
+
+.notice-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--pass-text);
+}
+
+.notice-detail {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.error-text {
+  color: var(--error);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ── Report ────────────────────────────────────────────────────────────── */
+
+.report {
+  margin-top: 2.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.report-header .muted {
+  margin: 0.25rem 0 0;
+}
+
+.check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.check-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+}
+
+.check-badge {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  margin-top: 0.1rem;
+  border: 1px solid;
+}
+
+.check-pass .check-badge {
+  background: var(--pass-bg);
+  border-color: var(--pass-border);
+  color: var(--pass-text);
+}
+
+.check-fail .check-badge {
+  background: var(--fail-bg);
+  border-color: var(--fail-border);
+  color: var(--fail-text);
+}
+
+.check-needs-review .check-badge {
+  background: var(--review-bg);
+  border-color: var(--review-border);
+  color: var(--review-text);
+}
+
+.check-name {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.check-detail {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.analysis {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.9rem;
 }

@@ -3,7 +3,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { HttpApi } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpApi, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -87,17 +87,25 @@ export class ProcuraStack extends cdk.Stack {
         POLICY_PROFILES_TABLE: policyProfilesTable.tableName,
         EVALUATIONS_TABLE: evaluationsTable.tableName,
         MCP_SERVER_URL: mcpApi.apiEndpoint,
+        // Supplied by the deployer's environment; can also be set post-deploy
+        // via `aws lambda update-function-configuration`.
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? '',
         NODE_OPTIONS: '--enable-source-maps',
       },
     });
 
     vendorDocsBucket.grantReadWrite(backendFn);
-    policyProfilesTable.grantReadData(backendFn);
+    policyProfilesTable.grantReadWriteData(backendFn);
     evaluationsTable.grantReadWriteData(backendFn);
 
     const backendApi = new HttpApi(this, 'BackendApi', {
       apiName: 'procura-backend',
       defaultIntegration: new HttpLambdaIntegration('BackendIntegration', backendFn),
+      corsPreflight: {
+        allowOrigins: ['*'],
+        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
+        allowHeaders: ['Content-Type'],
+      },
     });
 
     // ── Outputs ───────────────────────────────────────────────────────────────

@@ -13,24 +13,23 @@ const App: FC = () => {
   const [view, setView] = useState<View>('profiles');
 
   return (
-    <div className="min-h-screen bg-[#0c0e14] text-slate-200">
-      <header className="border-b border-slate-800 px-6 py-4 flex items-center gap-8">
-        <span className="font-semibold text-white tracking-tight">Procura</span>
-        <nav className="flex gap-1">
+    <div className="app">
+      <header className="app-header">
+        <span className="app-brand">Procura</span>
+        <nav className="app-nav">
           {TABS.map(({ id, label }) => (
             <button
               key={id}
+              type="button"
+              className={view === id ? 'nav-tab nav-tab-active' : 'nav-tab'}
               onClick={() => setView(id)}
-              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                view === id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
             >
               {label}
             </button>
           ))}
         </nav>
       </header>
-      <main className="max-w-3xl mx-auto px-6 py-8">
+      <main className="app-main">
         {view === 'profiles' ? <PolicyProfileForm /> : <EvaluationView />}
       </main>
     </div>

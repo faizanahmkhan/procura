@@ -1,37 +1,44 @@
-import type { PolicyProfile, EvaluationReport } from '@procura/shared';
+import type { PolicyProfile, EvaluationRequest, EvaluationReport } from '@procura/shared';
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 
-async function req<T>(path: string, init?: RequestInit): Promise<T> {
+/** Client-supplied fields when creating a profile; id/createdAt are server-generated. */
+export type CreateProfileInput = Omit<PolicyProfile, 'id' | 'createdAt'>;
+
+/** Client-supplied fields when requesting an evaluation; id/createdAt are server-generated. */
+export type CreateEvaluationInput = Omit<EvaluationRequest, 'id' | 'createdAt'>;
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, init);
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
+    let message = `Request failed (HTTP ${res.status})`;
+    try {
+      const body = (await res.json()) as { message?: string };
+      if (body.message) message = body.message;
+    } catch {
+      // Non-JSON error body — keep the status-code message.
+    }
+    throw new Error(message);
   }
   return res.json() as Promise<T>;
 }
 
-export function createProfile(
-  data: Omit<PolicyProfile, 'id' | 'createdAt'>,
-): Promise<PolicyProfile> {
-  return req('/profiles', {
+export function createProfile(input: CreateProfileInput): Promise<PolicyProfile> {
+  return request('/profiles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify(input),
   });
 }
 
 export function listProfiles(): Promise<PolicyProfile[]> {
-  return req('/profiles');
+  return request('/profiles');
 }
 
-export function runEvaluation(params: {
-  documentText: string;
-  policyProfileId: string;
-}): Promise<EvaluationReport> {
-  return req('/evaluate', {
+export function createEvaluation(input: CreateEvaluationInput): Promise<EvaluationReport> {
+  return request('/evaluations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+    body: JSON.stringify(input),
   });
 }
