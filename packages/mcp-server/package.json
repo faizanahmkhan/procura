@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "build": "tsc --build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "@procura/shared": "*"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.0"
+    "@types/aws-lambda": "^8.10.0",
+    "vitest": "^3.0.0"
   }
 }
